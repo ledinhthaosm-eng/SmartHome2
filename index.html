@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMART HOME</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+  body{
+    text-align:center;
+    font-family:Arial;
+    background: #f5f5f5;
+    margin: 0;
+  }
+  
+  .dashboard{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    padding: 30px;
+    max-width: 1000px;
+    margin: auto;
+  }
+
+  .room{
+    border: 2px solid #ccc;
+    padding: 10px 25px 25px 25px;
+    width: 260px;
+    border-radius: 10px;
+  }
+
+  .room p{
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  }
+
+  .device{
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  .device p{margin: 0 0 10px 0;font-size: 16px;}
+
+  .device button{
+    margin: 0;
+    width: 100%;
+    height: 48px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .on{background: #2ecc71;color: white;}
+
+  .off{background: #e74c3c;color: white;}
+
+  </style>
+  </head>
+  <body>
+  <h2>MINI SMART HOME ESP32 - REST API + WEBSOCKET + MQTT</h2>
+
+<div class="dashboard">
+  <div class="room">
+    <p><b>LIVING ROOM</b></p>
+    <div class="device">
+      <p>LIGHTING:
+        <span id="text_living_light">---</span></p>
+      <button class="device-btn"
+        data-device="living_light"
+        id="btn_living_light">
+        TURN ON
+      </button>
+    </div>
+  </div>
+
+  <div class="room">
+    <p><b>BED ROOM</b></p>
+    <div class="device">
+      <p>LIGHTING:
+        <span id="text_bed_light">---</span></p>
+      <button class="device-btn"
+        data-device="bed_light"
+        id="btn_bed_light">
+        TURN ON
+      </button>
+    </div>
+  </div>
+
+  <div class="room">
+    <p><b>KITCHEN</b></p>
+    <div class="device">
+      <p>LIGHTING:
+        <span id="text_kitchen_light">---</span></p>
+      <button class="device-btn"
+        data-device="kitchen_light"
+        id="btn_kitchen_light">
+        TURN ON
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+//const ESP="192.168.1.32"
+
+//let ws=new WebSocket("ws://"+ESP+":81")
+let states={}
+
+// ===== Kết nối MQTT =====
+const client = mqtt.connect(
+"wss://4ac7c879e05a441da036dc91a453618c.s1.eu.hivemq.cloud:8884/mqtt",
+{
+ username:"Mini_Smart_Home",
+ password:"Thaosm123"
+});
+
+
+// ===== Subscribe trạng thái =====
+client.on("connect",function(){
+  console.log("Connected MQTT");
+  client.subscribe("home/living/light");
+  client.subscribe("home/bed/light");
+  client.subscribe("home/kitchen/light");
+});
+
+
+// ===== Nhận dữ liệu từ ESP32
+client.on("message",function(topic,message){
+  let msg = message.toString();
+
+  if(topic=="home/living/light"){
+    states["living_light"] = msg=="ON";   // cập nhật state để có thể đổi trạng thái 
+    updateUI("living_light", msg=="ON");  // trong hàm click button
+  }
+
+  if(topic=="home/bed/light"){
+    states["bed_light"] = msg=="ON";
+    updateUI("bed_light", msg=="ON")
+  }
+
+  if(topic=="home/kitchen/light"){
+    states["kitchen_light"] = msg=="ON";
+    updateUI("kitchen_light", msg=="ON")
+  }
+});
+
+
+// ===== CẬP NHẬT GIAO DIỆN =====
+function updateUI(device,state){
+  
+  let text=document.getElementById("text_"+device)
+  let btn=document.getElementById("btn_"+device)
+
+  text.innerText=state?"ON":"OFF"
+  btn.innerText = state?"TURN OFF" : "TURN ON";
+  btn.className=state?"off":"on"
+}
+
+// ===== GỬI LỆNH ĐẾN ESP32 =====
+function sendDevice(device, state){
+  let msg = state ? "ON":"OFF";
+
+  if(device=="living_light")
+    client.publish("home/living/light",msg);
+
+  if(device=="bed_light")
+    client.publish("home/bed/light",msg);
+
+  if(device=="kitchen_light")
+    client.publish("home/kitchen/light",msg);
+}
+
+// ===== BUTTON CLICK =====
+    let buttons = document.querySelectorAll(".device-btn");
+    buttons.forEach(function(btn){
+      btn.onclick = function(){
+
+        let device = btn.dataset.device;
+        let currentState = states[device];
+	let newState = !currentState;
+       
+        sendDevice(device, newState);
+        console.log(device, newState); // Debug
+      };
+    });
+
+
+</script>
+
+</body>
+</html>
