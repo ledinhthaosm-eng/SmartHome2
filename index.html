@@ -123,31 +123,31 @@ const client = mqtt.connect(
 // ===== Subscribe trạng thái =====
 client.on("connect",function(){
   console.log("Connected MQTT");
-  client.subscribe("home/living/light");
-  client.subscribe("home/bed/light");
-  client.subscribe("home/kitchen/light");
+  client.subscribe("home/living/light/state");
+  client.subscribe("home/bed/light/state");
+  client.subscribe("home/kitchen/light/state");
 });
-
 
 // ===== Nhận dữ liệu từ ESP32
 client.on("message",function(topic,message){
   let msg = message.toString();
 
-  if(topic=="home/living/light"){
+  if(topic=="home/living/light/state"){
     states["living_light"] = msg=="ON";   // cập nhật state để có thể đổi trạng thái 
     updateUI("living_light", msg=="ON");  // trong hàm click button
   }
 
-  if(topic=="home/bed/light"){
+  if(topic=="home/bed/light/state"){
     states["bed_light"] = msg=="ON";
     updateUI("bed_light", msg=="ON")
   }
 
-  if(topic=="home/kitchen/light"){
+  if(topic=="home/kitchen/light/state"){
     states["kitchen_light"] = msg=="ON";
     updateUI("kitchen_light", msg=="ON")
   }
 });
+
 
 
 // ===== CẬP NHẬT GIAO DIỆN =====
@@ -166,13 +166,13 @@ function sendDevice(device, state){
   let msg = state ? "ON":"OFF";
 
   if(device=="living_light")
-    client.publish("home/living/light",msg);
+    client.publish("home/living/light/set",msg);
 
   if(device=="bed_light")
-    client.publish("home/bed/light",msg);
+    client.publish("home/bed/light/set",msg);
 
   if(device=="kitchen_light")
-    client.publish("home/kitchen/light",msg);
+    client.publish("home/kitchen/light/set",msg);
 }
 
 // ===== BUTTON CLICK =====
@@ -194,3 +194,4 @@ function sendDevice(device, state){
 
 </body>
 </html>
+
